@@ -1,0 +1,49 @@
+# Docker Compose configuration for development services.
+#
+# Provides PostgreSQL (with pgvector) and Redis for local development.
+# The application itself runs natively for faster iteration.
+#
+# Usage:
+#   docker compose up -d          # Start services
+#   docker compose down           # Stop services
+#   docker compose down -v        # Stop and remove volumes
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: face_attendance_db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: face_attendance
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: face_attendance_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

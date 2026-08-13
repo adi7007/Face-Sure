@@ -1,0 +1,81 @@
+# ===========================
+# Python
+# ===========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+.Python
+
+# ===========================
+# Node.js
+# ===========================
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# ===========================
+# Environment & Secrets
+# ===========================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ===========================
+# Data & Models (large files)
+# ===========================
+data/models/*.onnx
+data/models/*.pth
+data/models/*.pt
+data/faces/
+data/exports/
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+
+# ===========================
+# IDE & Editor
+# ===========================
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===========================
+# Testing & Coverage
+# ===========================
+.coverage
+htmlcov/
+.pytest_cache/
+coverage/
+*.lcov
+
+# ===========================
+# Docker
+# ===========================
+postgres_data/
+redis_data/
+
+# ===========================
+# OS
+# ===========================
+*.log
+*.tmp
+*.bak
