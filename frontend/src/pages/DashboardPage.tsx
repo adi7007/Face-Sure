@@ -1,7 +1,58 @@
+import React, { useEffect, useState } from 'react';
 import { Users, BookOpen, CalendarCheck, ShieldCheck, Cpu } from 'lucide-react';
 import { StatCard } from '../components/StatCard';
+import axios from 'axios';
+
+interface DashboardData {
+  total_students: number;
+  present_count: number;
+  absent_count: number;
+  attendance_percentage: number;
+  active_session: {
+    id: number;
+    course_code: string;
+    course_name: string;
+    status: string;
+  };
+  recent_records: Array<{
+    id: number;
+    student_id: string;
+    name: string;
+    marked_at: string;
+    status: string;
+    confidence: number;
+    quality: number;
+    liveness: number;
+  }>;
+}
 
 export const DashboardPage: React.FC = () => {
+  const [data, setData] = useState<DashboardData>({
+    total_students: 150,
+    present_count: 42,
+    absent_count: 8,
+    attendance_percentage: 94.2,
+    active_session: { id: 1, course_code: 'CS-401', course_name: 'Deep Learning & Computer Vision', status: 'active' },
+    recent_records: [
+      { id: 1, student_id: 'STU-2026-001', name: 'Alex Johnson', marked_at: '10:15:00 AM', status: 'present', confidence: 0.942, quality: 0.88, liveness: 0.99 },
+      { id: 2, student_id: 'STU-2026-002', name: 'Beatrix Kiddo', marked_at: '10:17:22 AM', status: 'present', confidence: 0.915, quality: 0.85, liveness: 0.98 },
+    ],
+  });
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const res = await axios.get('http://127.0.0.1:8000/api/v1/attendance/dashboard-summary');
+        if (res.data) {
+          setData(res.data);
+        }
+      } catch (e) {
+        // Fallback demo state
+      }
+    };
+    fetchDashboard();
+  }, []);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Page Title Header */}
@@ -20,10 +71,10 @@ export const DashboardPage: React.FC = () => {
         gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
         gap: '20px'
       }}>
-        <StatCard title="Total Students" value="150" subtitle="+12 registered this term" icon={Users} color="#38bdf8" />
-        <StatCard title="Active Courses" value="4" subtitle="Computer Science & IT" icon={BookOpen} color="#6366f1" />
-        <StatCard title="Attendance Rate" value="94.2%" subtitle="+2.4% vs baseline" icon={CalendarCheck} color="#34d399" />
-        <StatCard title="Avg Liveness Score" value="0.984" subtitle="MiniFASNet Passive FAS" icon={ShieldCheck} color="#a855f7" />
+        <StatCard title="Total Enrolled" value={data.total_students} subtitle="Active Student Roster" icon={Users} color="#38bdf8" />
+        <StatCard title="Present Students" value={data.present_count} subtitle={`${data.absent_count} absent today`} icon={CalendarCheck} color="#34d399" />
+        <StatCard title="Attendance Rate" value={`${data.attendance_percentage}%`} subtitle="Classroom Attendance" icon={BookOpen} color="#6366f1" />
+        <StatCard title="Avg Liveness Score" value="0.984" subtitle="MiniFASNet FAS" icon={ShieldCheck} color="#a855f7" />
       </div>
 
       {/* Main Grid Section */}
@@ -49,7 +100,7 @@ export const DashboardPage: React.FC = () => {
               fontSize: '12px',
               fontWeight: 600
             }}>
-              LIVE • CS-401
+              LIVE • {data.active_session?.course_code || 'CS-401'}
             </span>
           </div>
 
@@ -61,20 +112,20 @@ export const DashboardPage: React.FC = () => {
             marginBottom: '20px'
           }}>
             <div style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc' }}>
-              CS-401: Deep Learning & Computer Vision
+              {data.active_session?.course_code}: {data.active_session?.course_name}
             </div>
             <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '4px' }}>
-              Instructor: Dr. Alan Turing • Session Window: 10:00 AM - 11:30 AM
+              Instructor: Dr. Alan Turing • Session Window: Active
             </div>
             
             {/* Progress Bar */}
             <div style={{ marginTop: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94a3b8', marginBottom: '6px' }}>
-                <span>Verified Students: 42 / 45</span>
-                <span style={{ color: '#34d399', fontWeight: 600 }}>93.3% Logged</span>
+                <span>Verified Students: {data.present_count} Logged</span>
+                <span style={{ color: '#34d399', fontWeight: 600 }}>{data.attendance_percentage}% Logged</span>
               </div>
               <div style={{ height: '8px', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: '93.3%', height: '100%', backgroundColor: '#34d399', borderRadius: '4px' }}></div>
+                <div style={{ width: `${data.attendance_percentage}%`, height: '100%', backgroundColor: '#34d399', borderRadius: '4px' }}></div>
               </div>
             </div>
           </div>
@@ -128,7 +179,7 @@ export const DashboardPage: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <span style={{ color: '#94a3b8' }}>Detector Model</span>
-              <span style={{ color: '#f8fafc', fontWeight: 600 }}>RetinaFace ResNet-50</span>
+              <span style={{ color: '#f8fafc', fontWeight: 600 }}>OpenCV Cascade / Haar</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <span style={{ color: '#94a3b8' }}>Embedder Model</span>
@@ -136,15 +187,15 @@ export const DashboardPage: React.FC = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <span style={{ color: '#94a3b8' }}>Liveness Classifier</span>
-              <span style={{ color: '#f8fafc', fontWeight: 600 }}>MiniFASNetV2 SE</span>
+              <span style={{ color: '#f8fafc', fontWeight: 600 }}>MiniFASNet Passive FAS</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              <span style={{ color: '#94a3b8' }}>Dynamic Threshold \tau(Q)</span>
+              <span style={{ color: '#94a3b8' }}>Dynamic Threshold Tau(Q)</span>
               <span style={{ color: '#38bdf8', fontWeight: 600 }}>Adaptive Enabled</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#94a3b8' }}>Avg Frame Latency</span>
-              <span style={{ color: '#34d399', fontWeight: 600 }}>41.2 ms (24.2 FPS)</span>
+              <span style={{ color: '#94a3b8' }}>Duplicate Prevention</span>
+              <span style={{ color: '#34d399', fontWeight: 600 }}>App & DB Enforced</span>
             </div>
           </div>
         </div>

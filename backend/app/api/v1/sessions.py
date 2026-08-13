@@ -1,72 +1,64 @@
 """
-Attendance session management API endpoints (Create, List, Close).
+Attendance sessions management API endpoints.
 """
 
+from typing import List, Optional
 from datetime import datetime, timezone
-from typing import List
-from uuid import UUID
-from fastapi import APIRouter, Depends, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.database import get_db
-from app.core.security import get_current_user
-from app.core.exceptions import NotFoundError
-from app.models.user import User
 from app.models.attendance import AttendanceSession, SessionStatus
 from app.schemas.attendance import SessionCreate, SessionResponse
 
-router = APIRouter(prefix="/sessions", tags=["Attendance Sessions"])
+router = APIRouter()
 
 
-@router.get("", response_model=List[SessionResponse], status_code=status.HTTP_200_OK)
-async def list_sessions(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """List attendance sessions."""
-    stmt = select(AttendanceSession).order_by(AttendanceSession.created_at.desc())
-    result = await db.execute(stmt)
-    sessions = result.scalars().all()
-    return sessions
-
-
-@router.post("", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=SessionResponse, status_code=status.HTTP_201_CREATED, summary="Create new session")
 async def create_session(
     payload: SessionCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
-    """Create a new active attendance session."""
-    session = AttendanceSession(
+    """Admin creates a new attendance session for a course."""
+    new_session = AttendanceSession(
         course_id=payload.course_id,
-        created_by=current_user.id,
-        title=payload.title,
+        date=datetime.now(timezone.utc),
         status=SessionStatus.ACTIVE,
-        start_time=datetime.now(timezone.utc),
-        late_threshold_minutes=payload.late_threshold_minutes,
+        notes=payload.notes,
     )
-    db.add(session)
+    db.add(new_session)
     await db.commit()
-    await db.refresh(session)
-    return session
+    await db.refresh(new_session)
+    return new_session
 
 
-@router.post("/{session_id}/close", response_model=SessionResponse, status_code=status.HTTP_200_OK)
-async def close_session(
-    session_id: UUID,
+@router.get("/", response_model=List[SessionResponse], summary="List sessions")
+async def list_sessions(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
-    """Close an active attendance session."""
-    stmt = select(AttendanceSession).where(AttendanceSession.id == session_id)
-    result = await db.execute(stmt)
-    session = result.scalar_one_or_none()
-    if not session:
-        raise NotFoundError("Attendance session not found")
+    """List all attendance sessions."""
+    result = await db.execute(
+        select(AttendanceSession).order_by(AttendanceSession.id.desc())
+    )
+    return result.scalars().all()
 
-    session.status = SessionStatus.COMPLETED
-    session.end_time = datetime.now(timezone.utc)
+
+@router.post("/{session_id}/stop", summary="Stop active attendance session")
+async def stop_session(
+    session_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Stop/complete an active attendance session."""
+    result = await db.execute(
+        select(AttendanceSession).where(AttendanceSession.id == session_id)
+    )
+    session_obj = result.scalars().first()
+    if not session_obj:
+        raise HTTPException(status_code=404, detail=f"Session #{session_id} not found.")
+
+    session_obj.status = SessionStatus.COMPLETED
+    session_obj.end_time = datetime.now(timezone.utc)
     await db.commit()
-    await db.refresh(session)
-    return session
+    return {"status": "success", "message": f"Session #{session_id} closed.", "session_id": session_id}
