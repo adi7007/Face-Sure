@@ -6,11 +6,18 @@ account and can have multiple face embeddings for recognition.
 """
 
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.user import User
+    from app.models.face_embedding import FaceEmbedding
+    from app.models.course import Enrollment
+    from app.models.attendance import AttendanceRecord
 
 
 class Student(Base):

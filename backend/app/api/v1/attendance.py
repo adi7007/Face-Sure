@@ -50,7 +50,7 @@ async def get_dashboard_summary(
     total students, present count, absent count, attendance percentage, active session, and recent history.
     """
     # Total students
-    total_students_res = await db.execute(select(func.count(Student.id)).where(Student.is_active == True))
+    total_students_res = await db.execute(select(func.count(Student.id)))
     total_students = total_students_res.scalar() or 150
 
     # Active session

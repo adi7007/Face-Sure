@@ -61,6 +61,7 @@ async def get_session():
     if _async_session_factory is None:
         init_engine()
 
+    assert _async_session_factory is not None
     async with _async_session_factory() as session:
         try:
             yield session

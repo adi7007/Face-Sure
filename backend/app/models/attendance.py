@@ -7,11 +7,17 @@ Represents attendance sessions (class meetings) and individual attendance record
 
 import enum
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.course import Course
+    from app.models.user import User
+    from app.models.student import Student
 
 
 class SessionStatus(str, enum.Enum):

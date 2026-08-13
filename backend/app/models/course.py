@@ -6,11 +6,17 @@ between students and courses.
 """
 
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.user import User
+    from app.models.attendance import AttendanceSession
+    from app.models.student import Student
 
 
 class Course(Base):

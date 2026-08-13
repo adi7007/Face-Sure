@@ -67,20 +67,21 @@ class LivenessSpoofError(AppException):
         super().__init__(message, status_code=status.HTTP_403_FORBIDDEN, details=details)
 
 
-async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
+async def app_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Global handler for AppException subclasses."""
+    app_exc = exc if isinstance(exc, AppException) else AppException(str(exc))
     logger.warning(
         "AppException caught [%s]: %s (Path: %s)",
-        exc.status_code,
-        exc.message,
+        app_exc.status_code,
+        app_exc.message,
         request.url.path,
     )
     return JSONResponse(
-        status_code=exc.status_code,
+        status_code=app_exc.status_code,
         content={
-            "error": exc.__class__.__name__,
-            "message": exc.message,
-            "details": exc.details,
+            "error": app_exc.__class__.__name__,
+            "message": app_exc.message,
+            "details": app_exc.details,
         },
     )
 
