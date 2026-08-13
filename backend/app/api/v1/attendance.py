@@ -20,8 +20,8 @@ attendance_service = AttendanceService()
 
 class VerifyFrameRequest(BaseModel):
     """Payload for live webcam frame verification."""
-    session_id: int = Field(..., example=1)
-    image_base64: str = Field(..., example="data:image/jpeg;base64,/9j/4AAQSkZJRg...")
+    session_id: int = Field(..., json_schema_extra={"example": 1})
+    image_base64: str = Field(..., json_schema_extra={"example": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."})
 
 
 @router.post("/verify-and-mark", summary="Verify webcam frame and mark attendance")

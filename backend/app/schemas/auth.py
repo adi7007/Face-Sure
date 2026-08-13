@@ -9,8 +9,8 @@ from app.models.user import UserRole
 class LoginRequest(BaseModel):
     """User login request schema."""
 
-    username_or_email: str = Field(..., example="admin@project.edu")
-    password: str = Field(..., min_length=6, example="Admin@123456")
+    username_or_email: str = Field(..., json_schema_extra={"example": "admin@project.edu"})
+    password: str = Field(..., min_length=6, json_schema_extra={"example": "Admin@123456"})
 
 
 class TokenResponse(BaseModel):

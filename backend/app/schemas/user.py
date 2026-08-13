@@ -4,7 +4,7 @@ Pydantic schemas for user creation, update, and response.
 
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from app.models.user import UserRole
 
 
@@ -21,6 +21,8 @@ class UserCreate(BaseModel):
 class UserResponse(BaseModel):
     """User response schema."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     email: EmailStr
     username: str
@@ -28,6 +30,3 @@ class UserResponse(BaseModel):
     role: UserRole
     is_active: bool
     created_at: datetime
-
-    class Config:
-        from_attributes = True
