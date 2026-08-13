@@ -1,0 +1,16 @@
+Experiment ID,Category,Condition,Baseline Metric (%),Proposed QMF Metric (%),Delta Improvement
+EXP-01,Lighting,Good (140),20.0,20.0,+0.0%
+EXP-01,Lighting,Medium (80),0.0,0.0,+0.0%
+EXP-01,Lighting,Poor (35),0.0,0.0,+0.0%
+EXP-02,Distance,Near (150px),100.0,100.0,+0.0%
+EXP-02,Distance,Medium (90px),100.0,100.0,+0.0%
+EXP-02,Distance,Far (45px),100.0,0.0,+-100.0%
+EXP-03,Pose,Frontal (0°),100.0,100.0,+0.0%
+EXP-03,Pose,Yaw 15°,100.0,100.0,+0.0%
+EXP-03,Pose,Yaw 30°,100.0,100.0,+0.0%
+EXP-04,Blur,Sharp (k=0),100.0,100.0,+0.0%
+EXP-04,Blur,Moderate Blur (k=11),100.0,0.0,+-100.0%
+EXP-04,Blur,Heavy Blur (k=25),0.0,0.0,+0.0%
+EXP-05,Liveness,Genuine Live Face,0.0,0.0,+0.0%
+EXP-05,Liveness,Printed Photo Attack,0.0,100.0,+100.0%
+EXP-05,Liveness,Phone Screen Replay,0.0,100.0,+100.0%

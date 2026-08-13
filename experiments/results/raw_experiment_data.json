@@ -1,0 +1,99 @@
+{
+  "timestamp": "2026-08-13T07:13:45.724643+00:00",
+  "environment": "Windows 11 x86_64 / Intel i5-12450H / GTX 1650 CUDA",
+  "experiments": {
+    "EXP-01_Lighting": [
+      {
+        "condition": "Good (140)",
+        "baseline_acc": 20.0,
+        "proposed_acc": 20.0
+      },
+      {
+        "condition": "Medium (80)",
+        "baseline_acc": 0.0,
+        "proposed_acc": 0.0
+      },
+      {
+        "condition": "Poor (35)",
+        "baseline_acc": 0.0,
+        "proposed_acc": 0.0
+      }
+    ],
+    "EXP-02_Distance": [
+      {
+        "distance": "Near (150px)",
+        "baseline_acc": 100.0,
+        "proposed_acc": 100.0
+      },
+      {
+        "distance": "Medium (90px)",
+        "baseline_acc": 100.0,
+        "proposed_acc": 100.0
+      },
+      {
+        "distance": "Far (45px)",
+        "baseline_acc": 100.0,
+        "proposed_acc": 0.0
+      }
+    ],
+    "EXP-03_Pose": [
+      {
+        "pose": "Frontal (0\u00b0)",
+        "baseline_acc": 100.0,
+        "proposed_acc": 100.0
+      },
+      {
+        "pose": "Yaw 15\u00b0",
+        "baseline_acc": 100.0,
+        "proposed_acc": 100.0
+      },
+      {
+        "pose": "Yaw 30\u00b0",
+        "baseline_acc": 100.0,
+        "proposed_acc": 100.0
+      }
+    ],
+    "EXP-04_Blur": [
+      {
+        "quality": "Sharp (k=0)",
+        "baseline_acc": 100.0,
+        "proposed_acc": 100.0
+      },
+      {
+        "quality": "Moderate Blur (k=11)",
+        "baseline_acc": 100.0,
+        "proposed_acc": 0.0
+      },
+      {
+        "quality": "Heavy Blur (k=25)",
+        "baseline_acc": 0.0,
+        "proposed_acc": 0.0
+      }
+    ],
+    "EXP-05_Liveness": [
+      {
+        "scenario": "Genuine Live Face",
+        "baseline_rejection_rate": 0.0,
+        "proposed_rejection_rate": 0.0
+      },
+      {
+        "scenario": "Printed Photo Attack",
+        "baseline_rejection_rate": 0.0,
+        "proposed_rejection_rate": 100.0
+      },
+      {
+        "scenario": "Phone Screen Replay",
+        "baseline_rejection_rate": 0.0,
+        "proposed_rejection_rate": 100.0
+      }
+    ],
+    "EXP-06_Performance": {
+      "baseline_latency_ms": 2.56,
+      "baseline_fps": 391.0,
+      "proposed_latency_ms": 4.19,
+      "proposed_fps": 238.7,
+      "cpu_usage_pct": 14.2,
+      "gpu_memory_mb": 420.0
+    }
+  }
+}

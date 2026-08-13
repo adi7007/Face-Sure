@@ -22,12 +22,12 @@ import numpy as np
 class QualityThresholds:
     """Configurable quality assessment thresholds and weights."""
 
-    min_face_width: int = 60
-    min_face_height: int = 60
-    min_sharpness: float = 40.0
+    min_face_width: int = 40
+    min_face_height: int = 40
+    min_sharpness: float = 10.0
     min_brightness: float = 30.0
     max_brightness: float = 225.0
-    min_contrast: float = 25.0
+    min_contrast: float = 10.0
     max_yaw_angle: float = 30.0
     max_pitch_angle: float = 25.0
     min_symmetry_score: float = 0.50

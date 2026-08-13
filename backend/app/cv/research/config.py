@@ -32,9 +32,9 @@ class QMFConfig:
     lambda_param: float = 0.15
     
     # Hard Cutoff Thresholds
-    tau_quality_min: float = 0.30
-    tau_liveness_min: float = 0.50
-    tau_composite_min: float = 0.55
+    tau_quality_min: float = 0.25
+    tau_liveness_min: float = 0.40
+    tau_composite_min: float = 0.50
 
     # Multi-Factor Composite Weights (alpha + beta + gamma = 1.0)
     alpha_weight: float = 0.50  # Match Similarity weight
