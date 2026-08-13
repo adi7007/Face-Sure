@@ -1,81 +1,40 @@
-# ===========================
-# Python
-# ===========================
+# Python & Virtual Environments
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
+.venv/
+env/
+venv/
 *.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node.js & Frontend
+node_modules/
 dist/
 build/
-.eggs/
-*.egg
-.venv/
-venv/
-env/
-.Python
+.oxlintrc.json
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# ===========================
-# Node.js
-# ===========================
-node_modules/
-.next/
-out/
-.turbo/
-*.tsbuildinfo
-
-# ===========================
-# Environment & Secrets
-# ===========================
+# Environment & Credentials
 .env
 .env.local
-.env.*.local
 *.pem
 *.key
 
-# ===========================
-# Data & Models (large files)
-# ===========================
+# Data & Models
 data/models/*.onnx
-data/models/*.pth
-data/models/*.pt
-data/faces/
-data/exports/
-*.h5
-*.hdf5
-*.pkl
-*.pickle
+data/faces/*
+!data/faces/.gitkeep
+data/exports/*
+!data/exports/.gitkeep
 
-# ===========================
-# IDE & Editor
-# ===========================
-.vscode/settings.json
+# IDEs & System
+.vscode/
 .idea/
-*.swp
-*.swo
-*~
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# ===========================
-# Testing & Coverage
-# ===========================
-.coverage
-htmlcov/
-.pytest_cache/
-coverage/
-*.lcov
-
-# ===========================
-# Docker
-# ===========================
-postgres_data/
-redis_data/
-
-# ===========================
-# OS
-# ===========================
-*.log
-*.tmp
-*.bak

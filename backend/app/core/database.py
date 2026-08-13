@@ -50,21 +50,16 @@ def init_engine() -> None:
     )
 
 
-async def get_session() -> AsyncSession:
+async def get_session():
     """
     FastAPI dependency that provides an async database session.
 
-    Usage:
-        @app.get("/items")
-        async def get_items(session: AsyncSession = Depends(get_session)):
-            ...
-
     Yields:
-        AsyncSession: An async SQLAlchemy session that auto-commits on success
-        and auto-rolls-back on exception.
+        AsyncSession: An async SQLAlchemy session.
     """
+    global _async_session_factory
     if _async_session_factory is None:
-        raise RuntimeError("Database not initialized. Call init_engine() first.")
+        init_engine()
 
     async with _async_session_factory() as session:
         try:
@@ -73,6 +68,9 @@ async def get_session() -> AsyncSession:
         except Exception:
             await session.rollback()
             raise
+
+
+get_db = get_session
 
 
 async def close_engine() -> None:
