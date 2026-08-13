@@ -104,7 +104,7 @@ def test_quality_assessor_rejection_blur():
     
     res = assessor.assess_quality(blurry_image)
     assert res.is_acceptable is False
-    assert "blurry" in res.rejection_reason.lower()
+    assert "blur" in res.rejection_reason.lower()
 
 
 def test_face_embedder_normalization():
