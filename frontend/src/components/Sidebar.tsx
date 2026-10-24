@@ -1,5 +1,6 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   LayoutDashboard, 
   Camera, 
@@ -8,18 +9,56 @@ import {
   CalendarCheck, 
   FileSpreadsheet, 
   ShieldCheck, 
-  LogOut 
+  LogOut,
+  BarChart3,
+  GraduationCap,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
-  const navItems = [
+  const { user, logout, hasRole } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
+
+  // Build nav items based on role
+  const navItems: Array<{ path: string; label: string; icon: any }> = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/kiosk', label: 'Live Kiosk', icon: Camera },
-    { path: '/students', label: 'Students', icon: Users },
-    { path: '/courses', label: 'Courses', icon: BookOpen },
-    { path: '/sessions', label: 'Attendance Sessions', icon: CalendarCheck },
-    { path: '/reports', label: 'Reports & Export', icon: FileSpreadsheet },
   ];
+
+  // Admin/Instructor-only items
+  if (hasRole('ADMIN', 'INSTRUCTOR')) {
+    navItems.push(
+      { path: '/students', label: 'Students', icon: Users },
+      { path: '/courses', label: 'Courses', icon: BookOpen },
+      { path: '/sessions', label: 'Attendance Sessions', icon: CalendarCheck },
+      { path: '/analytics', label: 'Analytics', icon: BarChart3 },
+    );
+  }
+
+  // Admin-only
+  if (hasRole('ADMIN')) {
+    navItems.push(
+      { path: '/reports', label: 'Reports & Export', icon: FileSpreadsheet },
+    );
+  }
+
+  // Student-only
+  if (hasRole('STUDENT')) {
+    navItems.push(
+      { path: '/my-attendance', label: 'My Attendance', icon: GraduationCap },
+    );
+  }
+
+  // Role badge color
+  const roleBadgeColor = {
+    ADMIN: '#38bdf8',
+    INSTRUCTOR: '#a78bfa',
+    STUDENT: '#34d399',
+  }[user?.role || 'STUDENT'];
 
   return (
     <aside style={{
@@ -68,6 +107,7 @@ export const Sidebar: React.FC = () => {
             <NavLink
               key={item.path}
               to={item.path}
+              end={item.path === '/'}
               style={({ isActive }) => ({
                 display: 'flex',
                 alignItems: 'center',
@@ -99,16 +139,41 @@ export const Sidebar: React.FC = () => {
         justifyContent: 'space-between'
       }}>
         <div>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>Admin User</div>
-          <div style={{ fontSize: '11px', color: '#94a3b8' }}>admin@project.edu</div>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc' }}>
+            {user?.fullName || 'Guest'}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+            <span style={{
+              fontSize: '10px', fontWeight: 700, color: roleBadgeColor,
+              background: `${roleBadgeColor}20`,
+              padding: '2px 6px', borderRadius: '4px',
+              textTransform: 'uppercase', letterSpacing: '0.04em',
+            }}>
+              {user?.role || 'GUEST'}
+            </span>
+          </div>
         </div>
-        <button style={{
-          background: 'none',
-          border: 'none',
-          color: '#94a3b8',
-          cursor: 'pointer',
-          padding: '6px'
-        }}>
+        <button
+          onClick={handleLogout}
+          title="Sign Out"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#94a3b8',
+            cursor: 'pointer',
+            padding: '6px',
+            borderRadius: '6px',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = '#ef4444';
+            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = '#94a3b8';
+            e.currentTarget.style.background = 'none';
+          }}
+        >
           <LogOut size={18} />
         </button>
       </div>

@@ -6,10 +6,12 @@ Each student can have multiple embeddings from different capture angles
 for improved recognition accuracy.
 """
 
+import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
+from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, UUID as SQL_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -46,8 +48,8 @@ class FaceEmbedding(Base):
 
     __tablename__ = "face_embeddings"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    student_id: Mapped[int] = mapped_column(
+    id: Mapped[UUID] = mapped_column(SQL_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[UUID] = mapped_column(
         ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True
     )
     embedding = mapped_column(Vector(512), nullable=False)

@@ -5,9 +5,11 @@ Immutable audit trail for all security-sensitive and recognition events.
 Used for compliance, debugging, and the research paper's data analysis.
 """
 
+import uuid
 from datetime import datetime, timezone
+from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, String, Text, UUID as SQL_UUID
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -39,20 +41,20 @@ class AuditLog(Base):
 
     __tablename__ = "audit_logs"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[UUID] = mapped_column(SQL_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         index=True,
     )
     action: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    user_id: Mapped[int | None] = mapped_column(
+    user_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
     resource_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    resource_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    resource_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     details: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="success")
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Users, BookOpen, CalendarCheck, ShieldCheck, Cpu } from 'lucide-react';
 import { StatCard } from '../components/StatCard';
 import axios from 'axios';
@@ -9,13 +10,13 @@ interface DashboardData {
   absent_count: number;
   attendance_percentage: number;
   active_session: {
-    id: number;
-    course_code: string;
-    course_name: string;
+    id: string | null;
+    course_code: string | null;
+    course_name: string | null;
     status: string;
   };
   recent_records: Array<{
-    id: number;
+    id: string;
     student_id: string;
     name: string;
     marked_at: string;
@@ -28,15 +29,12 @@ interface DashboardData {
 
 export const DashboardPage: React.FC = () => {
   const [data, setData] = useState<DashboardData>({
-    total_students: 150,
-    present_count: 42,
-    absent_count: 8,
-    attendance_percentage: 94.2,
-    active_session: { id: 1, course_code: 'CS-401', course_name: 'Deep Learning & Computer Vision', status: 'active' },
-    recent_records: [
-      { id: 1, student_id: 'STU-2026-001', name: 'Alex Johnson', marked_at: '10:15:00 AM', status: 'present', confidence: 0.942, quality: 0.88, liveness: 0.99 },
-      { id: 2, student_id: 'STU-2026-002', name: 'Beatrix Kiddo', marked_at: '10:17:22 AM', status: 'present', confidence: 0.915, quality: 0.85, liveness: 0.98 },
-    ],
+    total_students: 0,
+    present_count: 0,
+    absent_count: 0,
+    attendance_percentage: 0,
+    active_session: { id: null, course_code: null, course_name: null, status: 'NONE' },
+    recent_records: [],
   });
 
   useEffect(() => {
@@ -74,7 +72,7 @@ export const DashboardPage: React.FC = () => {
         <StatCard title="Total Enrolled" value={data.total_students} subtitle="Active Student Roster" icon={Users} color="#38bdf8" />
         <StatCard title="Present Students" value={data.present_count} subtitle={`${data.absent_count} absent today`} icon={CalendarCheck} color="#34d399" />
         <StatCard title="Attendance Rate" value={`${data.attendance_percentage}%`} subtitle="Classroom Attendance" icon={BookOpen} color="#6366f1" />
-        <StatCard title="Avg Liveness Score" value="0.984" subtitle="MiniFASNet FAS" icon={ShieldCheck} color="#a855f7" />
+        <StatCard title="Avg Liveness Score" value="—" subtitle="Available from verified attendance records" icon={ShieldCheck} color="#a855f7" />
       </div>
 
       {/* Main Grid Section */}
@@ -100,7 +98,7 @@ export const DashboardPage: React.FC = () => {
               fontSize: '12px',
               fontWeight: 600
             }}>
-              LIVE • {data.active_session?.course_code || 'CS-401'}
+              {data.active_session?.status === 'ACTIVE' ? 'LIVE' : 'NO ACTIVE SESSION'} • {data.active_session?.course_code || '—'}
             </span>
           </div>
 
@@ -112,7 +110,7 @@ export const DashboardPage: React.FC = () => {
             marginBottom: '20px'
           }}>
             <div style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc' }}>
-              {data.active_session?.course_code}: {data.active_session?.course_name}
+              {data.active_session?.course_code || 'No active session'}{data.active_session?.course_name ? `: ${data.active_session.course_name}` : ''}
             </div>
             <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '4px' }}>
               Instructor: Dr. Alan Turing • Session Window: Active
@@ -132,7 +130,7 @@ export const DashboardPage: React.FC = () => {
 
           {/* Quick Actions */}
           <div style={{ display: 'flex', gap: '12px' }}>
-            <a href="/kiosk" style={{
+            <Link to="/kiosk" style={{
               flex: 1,
               backgroundColor: '#38bdf8',
               color: '#0f172a',
@@ -144,8 +142,8 @@ export const DashboardPage: React.FC = () => {
               fontSize: '14px'
             }}>
               Open Live Webcam Kiosk
-            </a>
-            <a href="/sessions" style={{
+            </Link>
+            <Link to="/sessions" style={{
               backgroundColor: 'rgba(255, 255, 255, 0.08)',
               color: '#f8fafc',
               textDecoration: 'none',
@@ -156,7 +154,7 @@ export const DashboardPage: React.FC = () => {
               fontSize: '14px'
             }}>
               Manage Sessions
-            </a>
+            </Link>
           </div>
         </div>
 

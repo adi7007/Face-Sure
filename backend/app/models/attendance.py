@@ -6,10 +6,12 @@ Represents attendance sessions (class meetings) and individual attendance record
 """
 
 import enum
+import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
+from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, Text, UniqueConstraint, UUID as SQL_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -23,26 +25,26 @@ if TYPE_CHECKING:
 class SessionStatus(str, enum.Enum):
     """Attendance session lifecycle status."""
 
-    SCHEDULED = "scheduled"
-    ACTIVE = "active"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
+    ACTIVE = "ACTIVE"
+    PAUSED = "PAUSED"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
 
 
 class AttendanceMethod(str, enum.Enum):
     """How attendance was recorded."""
 
-    FACIAL_RECOGNITION = "facial_recognition"
-    MANUAL = "manual"
+    FACE_RECOGNITION = "FACE_RECOGNITION"
+    MANUAL_OVERRIDE = "MANUAL_OVERRIDE"
 
 
 class AttendanceStatus(str, enum.Enum):
     """Attendance record status."""
 
-    PRESENT = "present"
-    LATE = "late"
-    ABSENT = "absent"
-    EXCUSED = "excused"
+    PRESENT = "PRESENT"
+    LATE = "LATE"
+    ABSENT = "ABSENT"
+    EXCUSED = "EXCUSED"
 
 
 class AttendanceSession(Base):
@@ -55,31 +57,33 @@ class AttendanceSession(Base):
     Attributes:
         id: Primary key.
         course_id: The course this session belongs to.
-        instructor_id: The instructor who created the session.
-        date: Session date.
-        start_time: When the session starts (or was started).
-        end_time: When the session ends (or was ended).
+        created_by: The instructor who created the session.
+        title: Session title.
         status: Session lifecycle status.
-        notes: Optional notes about the session.
+        start_time: When the session starts.
+        end_time: When the session ends.
+        late_threshold_minutes: Late threshold.
         created_at: Record creation timestamp.
     """
 
     __tablename__ = "attendance_sessions"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    course_id: Mapped[int] = mapped_column(
+    id: Mapped[UUID] = mapped_column(SQL_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    course_id: Mapped[UUID] = mapped_column(
         ForeignKey("courses.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    instructor_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    created_by: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
     )
-    date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    start_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    end_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    title: Mapped[str] = mapped_column(String(150), nullable=False)
     status: Mapped[SessionStatus] = mapped_column(
-        Enum(SessionStatus), default=SessionStatus.SCHEDULED
+        Enum(SessionStatus), default=SessionStatus.ACTIVE
     )
-    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    start_time: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    end_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    late_threshold_minutes: Mapped[int] = mapped_column(default=15, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
@@ -94,7 +98,7 @@ class AttendanceSession(Base):
     def __repr__(self) -> str:
         return (
             f"<AttendanceSession(id={self.id}, course_id={self.course_id}, "
-            f"date={self.date}, status={self.status.value})>"
+            f"title='{self.title}', status={self.status.value})>"
         )
 
 
@@ -109,43 +113,49 @@ class AttendanceRecord(Base):
         id: Primary key.
         student_id: The student being marked.
         session_id: The session this record belongs to.
+        status: Attendance status (present, late, absent, excused).
+        method: How attendance was recorded (facial recognition or manual).
+        confidence_score: Face recognition confidence score (0.0–1.0).
         marked_at: When attendance was marked.
-        confidence: Face recognition confidence score (0.0–1.0).
+        marked_by: Who marked this attendance.
+        remarks: Optional remarks (e.g., manual override reason).
         quality_score: Face quality assessment score (0.0–1.0).
         liveness_score: Liveness detection score (0.0–1.0).
-        method: How attendance was recorded (facial recognition or manual).
-        status: Attendance status (present, late, absent, excused).
         image_hash: SHA-256 hash of the captured image for audit trail.
-        notes: Optional notes (e.g., manual override reason).
         created_at: Record creation timestamp.
     """
 
     __tablename__ = "attendance_records"
     __table_args__ = (
-        UniqueConstraint("student_id", "session_id", name="uq_student_session"),
+        UniqueConstraint("student_id", "session_id", name="uq_session_student"),
     )
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    student_id: Mapped[int] = mapped_column(
-        ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True
+    id: Mapped[UUID] = mapped_column(SQL_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[UUID] = mapped_column(
+        ForeignKey("students.id", ondelete="RESTRICT"), nullable=False, index=True
     )
-    session_id: Mapped[int] = mapped_column(
+    session_id: Mapped[UUID] = mapped_column(
         ForeignKey("attendance_sessions.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    marked_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
-    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
-    quality_score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    liveness_score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    method: Mapped[AttendanceMethod] = mapped_column(
-        Enum(AttendanceMethod), default=AttendanceMethod.FACIAL_RECOGNITION
     )
     status: Mapped[AttendanceStatus] = mapped_column(
         Enum(AttendanceStatus), default=AttendanceStatus.PRESENT
     )
+    method: Mapped[AttendanceMethod] = mapped_column(
+        Enum(AttendanceMethod), default=AttendanceMethod.FACE_RECOGNITION
+    )
+    confidence_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    marked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    marked_by: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    remarks: Mapped[str | None] = mapped_column(Text, nullable=True)
+    
+    # Telemetry and audit
+    quality_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    liveness_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     image_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

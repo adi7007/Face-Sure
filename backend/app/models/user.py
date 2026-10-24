@@ -6,10 +6,12 @@ Each user has a role (admin, instructor, student) that determines their permissi
 """
 
 import enum
+import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
+from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, Enum, String
+from sqlalchemy import Boolean, DateTime, Enum, String, UUID as SQL_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -21,9 +23,9 @@ if TYPE_CHECKING:
 class UserRole(str, enum.Enum):
     """User roles for role-based access control."""
 
-    ADMIN = "admin"
-    INSTRUCTOR = "instructor"
-    STUDENT = "student"
+    ADMIN = "ADMIN"
+    INSTRUCTOR = "INSTRUCTOR"
+    STUDENT = "STUDENT"
 
 
 class User(Base):
@@ -33,7 +35,8 @@ class User(Base):
     Attributes:
         id: Primary key.
         email: Unique email address used for login.
-        password_hash: Bcrypt-hashed password.
+        username: Unique username.
+        hashed_password: Bcrypt-hashed password.
         full_name: Display name.
         role: Authorization role (admin, instructor, student).
         is_active: Whether the account is enabled.
@@ -43,9 +46,10 @@ class User(Base):
 
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[UUID] = mapped_column(SQL_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole), nullable=False, default=UserRole.STUDENT

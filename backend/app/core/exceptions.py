@@ -4,7 +4,7 @@ Custom application exception classes and global exception handlers.
 
 import logging
 from typing import Any
-from fastapi import Request, status
+from fastapi import Request, status 
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)

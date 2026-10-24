@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple
+from uuid import UUID
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,7 +33,7 @@ class AttendanceService:
     async def verify_and_mark_attendance(
         self,
         db: AsyncSession,
-        session_id: int,
+        session_id: UUID,
         image_base64: str,
     ) -> Dict[str, Any]:
         """
@@ -73,19 +74,21 @@ class AttendanceService:
         embeddings_query = await db.execute(
             select(FaceEmbedding, Student.student_id)
             .join(Student, FaceEmbedding.student_id == Student.id)
-            .where(Student.is_active == True)
+            .where(Student.is_active.is_(True), FaceEmbedding.is_active.is_(True))
         )
         enrolled_gallery = []
         for embed_obj, stu_code in embeddings_query.all():
-            vec = np.array(embed_obj.embedding, dtype=np.float32)
+            vec = np.asarray(embed_obj.embedding, dtype=np.float32)
+            if vec.shape != (512,) or not np.isfinite(vec).all():
+                continue
             enrolled_gallery.append((stu_code, str(embed_obj.id), vec))
 
-        # Fallback if DB empty: create a sample enrolled vector for active verification
         if not enrolled_gallery:
-            # Synthetic sample student for live demo/testing
-            crop = cv2.resize(frame_bgr, (112, 112))
-            sample_vec = self.qmf_pipeline.embedder.extract_embedding(crop)
-            enrolled_gallery.append(("STU-2026-001", "TMPL-100", sample_vec))
+            return {
+                "status": "NO_ENROLLED_STUDENTS",
+                "message": "No active biometric templates are enrolled; attendance was not recorded.",
+                "telemetry": None,
+            }
 
         # 4. Execute Proposed QMF-Score CV Pipeline
         pipeline_results = self.qmf_pipeline.process_frame(frame_bgr, enrolled_gallery)
@@ -125,8 +128,12 @@ class AttendanceService:
             select(Student).where(Student.student_id == top_result.matched_student_id)
         )
         student_obj = stu_query.scalars().first()
-        student_db_id = student_obj.id if student_obj else 1
-        student_name = f"{student_obj.first_name} {student_obj.last_name}" if student_obj else "Alex Johnson"
+        if not student_obj:
+            raise NotFoundError(f"Student with ID '{top_result.matched_student_id}' not found in database.")
+
+        student_db_id = student_obj.id
+        student_name = student_obj.full_name
+        student_email = student_obj.email
 
         # 6. Application-Level Duplicate Prevention Check
         existing_record = await db.execute(
@@ -141,20 +148,32 @@ class AttendanceService:
                 "message": f"Attendance already logged for student {top_result.matched_student_id}.",
                 "student_id": top_result.matched_student_id,
                 "student_name": student_name,
+                "student_email": student_email,
                 "telemetry": telemetry.__dict__,
             }
 
-        # 7. Persist Attendance Record into DB (with DB unique constraint safety)
+        # 7. Smart Late/Early Detection
+        now = datetime.now(timezone.utc)
+        late_cutoff = session_obj.start_time + __import__('datetime').timedelta(minutes=session_obj.late_threshold_minutes)
+        
+        if session_obj.status == SessionStatus.COMPLETED:
+            attendance_status = AttendanceStatus.ABSENT
+        elif now > late_cutoff:
+            attendance_status = AttendanceStatus.LATE
+        else:
+            attendance_status = AttendanceStatus.PRESENT
+
+        # 8. Persist Attendance Record into DB (with DB unique constraint safety)
         new_record = AttendanceRecord(
             student_id=student_db_id,
             session_id=session_id,
-            marked_at=datetime.now(timezone.utc),
-            confidence=float(top_result.similarity_score),
+            marked_at=now,
+            confidence_score=float(top_result.similarity_score),
             quality_score=float(top_result.quality_score),
             liveness_score=float(top_result.liveness_score),
-            method=AttendanceMethod.FACIAL_RECOGNITION,
-            status=AttendanceStatus.PRESENT,
-            notes=f"QMF-Score: {top_result.composite_score:.3f} | tau(Q): {top_result.dynamic_threshold:.3f}",
+            method=AttendanceMethod.FACE_RECOGNITION,
+            status=attendance_status,
+            remarks=f"QMF-Score: {top_result.composite_score:.3f} | tau(Q): {top_result.dynamic_threshold:.3f}",
         )
         
         db.add(new_record)
@@ -168,15 +187,52 @@ class AttendanceService:
                 "message": f"Duplicate attendance attempt blocked at database level.",
                 "student_id": top_result.matched_student_id,
                 "student_name": student_name,
+                "student_email": student_email,
                 "telemetry": telemetry.__dict__,
             }
 
+        # 9. Build Explainable Decision Breakdown
+        explainable_decision = {
+            "identity_match": {
+                "score": round(float(top_result.similarity_score) * 100, 1),
+                "verdict": "PASS",
+                "detail": f"Matched with {top_result.similarity_score:.3f} confidence"
+            },
+            "liveness": {
+                "score": round(float(top_result.liveness_score) * 100, 1),
+                "verdict": "PASS" if top_result.liveness_score >= 0.5 else "FAIL",
+                "detail": "Live face verified"
+            },
+            "quality": {
+                "score": round(float(top_result.quality_score) * 100, 1),
+                "verdict": "PASS" if top_result.quality_score >= 0.4 else "FAIL",
+                "detail": f"Quality score {top_result.quality_score:.3f}"
+            },
+            "duplicate_check": {
+                "verdict": "CLEAR",
+                "detail": "No prior attendance in this session"
+            },
+            "time_status": {
+                "verdict": attendance_status.value,
+                "detail": f"Marked at {now.strftime('%H:%M:%S UTC')} | "
+                          f"Session started {session_obj.start_time.strftime('%H:%M:%S UTC')} | "
+                          f"Late threshold: {session_obj.late_threshold_minutes}min"
+            },
+            "final_decision": attendance_status.value,
+            "composite_qmf_score": round(float(top_result.composite_score), 3),
+            "dynamic_threshold": round(float(top_result.dynamic_threshold), 3),
+        }
+
         return {
             "status": "SUCCESS",
-            "message": f"Attendance marked PRESENT for {student_name}.",
+            "message": f"Attendance marked {attendance_status.value} for {student_name}.",
             "record_id": new_record.id,
             "student_id": top_result.matched_student_id,
             "student_name": student_name,
+            "student_email": student_email,
+            "attendance_status": attendance_status.value,
             "marked_at": new_record.marked_at.isoformat(),
             "telemetry": telemetry.__dict__,
+            "explainable_decision": explainable_decision,
         }
+

@@ -8,12 +8,15 @@ Provides:
 """
 
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.config import get_settings
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 import bcrypt
@@ -126,16 +129,68 @@ def decode_access_token(token: str) -> dict[str, Any]:
     return decode_token(token)
 
 
-async def get_current_user():
-    """Dependency placeholder for returning current user from token."""
+async def get_current_user(
+    authorization: str | None = None,
+) -> "User":
+    """
+    Extract and validate JWT token from Authorization header.
+
+    Falls back to default admin user in development mode when no token is provided,
+    enabling gradual migration to full JWT auth.
+    """
     from app.models.user import User, UserRole
     from uuid import UUID
-    return User(
-        id=UUID("123e4567-e89b-12d3-a456-426614174000"),
-        email="admin@project.edu",
-        username="admin",
-        hashed_password=hash_password("Admin@123456"),
-        full_name="System Administrator",
-        role=UserRole.ADMIN,
-        is_active=True,
-    )
+    from fastapi import Header
+
+    # Try to extract from header
+    token = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+
+    if not token:
+        # Dev fallback: return admin user when no auth header present
+        settings = get_settings()
+        if settings.debug:
+            return User(
+                id=UUID("123e4567-e89b-12d3-a456-426614174000"),
+                email="admin@project.edu",
+                username="admin",
+                hashed_password=hash_password("Admin@123456"),
+                full_name="System Administrator",
+                role=UserRole.ADMIN,
+                is_active=True,
+            )
+        raise JWTError("Missing authentication token")
+
+    try:
+        payload = decode_token(token)
+        user_id = payload.get("sub")
+        role = payload.get("role", "STUDENT")
+        email = payload.get("email", "")
+        name = payload.get("name", "")
+
+        if not user_id:
+            raise JWTError("Invalid token: missing subject")
+
+        return User(
+            id=UUID(user_id),
+            email=email,
+            username=email.split("@")[0] if email else "user",
+            hashed_password="",
+            full_name=name,
+            role=UserRole(role),
+            is_active=True,
+        )
+    except JWTError:
+        raise JWTError("Invalid or expired authentication token")
+
+
+# FastAPI dependency version that reads from Header
+from fastapi import Header as _Header
+
+async def get_current_user_dep(
+    authorization: str | None = _Header(default=None),
+) -> "User":
+    """FastAPI dependency wrapper for get_current_user that reads Authorization header."""
+    return await get_current_user(authorization)
+

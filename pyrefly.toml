@@ -1,0 +1,6 @@
+# PyRefly type checker configuration
+# Points to the project's virtual environment so PyRefly can resolve
+# all installed packages (sqlalchemy, fastapi, pydantic, etc.)
+
+python-interpreter-path = "backend/.venv/Scripts/python.exe"
+search-path = ["backend"]

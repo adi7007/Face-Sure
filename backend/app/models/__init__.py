@@ -16,6 +16,7 @@ from app.models.attendance import (
 )
 from app.models.face_embedding import FaceEmbedding
 from app.models.audit_log import AuditLog
+from app.models.alert import Alert, AlertSeverity, AlertType
 
 __all__ = [
     "User",
@@ -30,4 +31,7 @@ __all__ = [
     "AttendanceStatus",
     "FaceEmbedding",
     "AuditLog",
+    "Alert",
+    "AlertSeverity",
+    "AlertType",
 ]

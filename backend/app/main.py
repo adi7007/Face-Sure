@@ -41,9 +41,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     print(f"   Environment: {settings.environment}")
     print(f"   Debug: {settings.debug}")
 
+    from app.core.database import init_engine
+
+    init_engine()
+
     yield
 
     # ── Shutdown ─────────────────────────────────────────────────
+    from app.core.database import close_engine
+    await close_engine()
     print("[*] Shutting down...")
 
 
@@ -65,18 +71,30 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # ── CORS Middleware ──────────────────────────────────────────
+    # NOTE: In FastAPI, middleware is LIFO — the LAST added wraps outermost.
+    # CORS must wrap outermost to handle preflight OPTIONS before anything else.
+    if settings.debug:
+        # Dev mode: allow all origins for frictionless development
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=False,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    else:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.allowed_origins_list,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
     # ── Exception Handlers ───────────────────────────────────────
     app.add_exception_handler(AppException, app_exception_handler)
     app.add_exception_handler(Exception, unhandled_exception_handler)
-
-    # ── CORS Middleware ──────────────────────────────────────────
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.allowed_origins_list,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
 
     # ── API Routers ──────────────────────────────────────────────
     app.include_router(api_v1_router, prefix="/api")

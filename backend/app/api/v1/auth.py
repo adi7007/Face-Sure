@@ -19,6 +19,47 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 @router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     """Authenticate user with username or email and return JWT access token."""
+    from app.config import get_settings
+    from uuid import uuid4
+
+    settings = get_settings()
+
+    # ── Dev-mode bypass: accept demo credentials without database ──
+    if settings.debug:
+        demo_users = {
+            "admin@project.edu": {
+                "password": "Admin@123456",
+                "user_id": "123e4567-e89b-12d3-a456-426614174000",
+                "role": "ADMIN",
+                "full_name": "System Administrator",
+                "username": "admin",
+            },
+            "admin": {
+                "password": "Admin@123456",
+                "user_id": "123e4567-e89b-12d3-a456-426614174000",
+                "role": "ADMIN",
+                "full_name": "System Administrator",
+                "username": "admin",
+            },
+        }
+
+        demo = demo_users.get(payload.username_or_email)
+        if demo and payload.password == demo["password"]:
+            access_token = create_access_token(
+                subject=demo["user_id"],
+                role=demo["role"],
+                extra_claims={"email": "admin@project.edu", "name": demo["full_name"]},
+            )
+            return TokenResponse(
+                access_token=access_token,
+                token_type="bearer",
+                expires_in=900,
+                user_id=demo["user_id"],
+                role=demo["role"],
+                full_name=demo["full_name"],
+            )
+
+    # ── Standard database authentication ──
     # Find user by username or email
     stmt = select(User).where(
         (User.email == payload.username_or_email) | (User.username == payload.username_or_email)
